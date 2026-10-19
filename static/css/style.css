@@ -1,7 +1,7 @@
 /* ==================================================
    STYLE INDEX
    Search for an HTML filename to find its related section.
-   Major sections are separated by exactly three blank lines.
+   Major sections use three blank lines; code blocks use one.
    1. SHARED THEME: Colours and foundations
    2. SHARED NAVIGATION: Public and portal layouts
    3. SHARED COMPONENTS: Buttons, cards, tables, feedback
@@ -21,6 +21,7 @@
    HTML: All 21 templates (shared code)
    Change these properties to update all three portals.
 ================================================== */
+
 :root {
     --purple: #6d28d9;
     --violet: #7c3aed;
@@ -177,6 +178,7 @@ small,
    HTML: All 21 templates (shared code)
    Portal links follow the page and server-provided user.
 ================================================== */
+
 .brand {
     display: inline-flex;
     align-items: center;
@@ -432,6 +434,7 @@ small,
    HTML: All 21 templates (shared code)
    Status words accompany every status colour.
 ================================================== */
+
 .button {
     display: inline-flex;
     min-height: 42px;
@@ -866,6 +869,7 @@ td .muted {
    HTML: index.html, scan_services.html
    The scanner is drawn in CSS and needs no remote asset.
 ================================================== */
+
 .public-content {
     max-width: 1220px;
     margin: auto;
@@ -1238,6 +1242,7 @@ td .muted {
    HTML: login.html, register.html
    Password values remain only in the current form.
 ================================================== */
+
 .auth-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1322,6 +1327,7 @@ td .muted {
    HTML: book_appointment.html, reschedule_appointment.html (form controls are also shared by account and admin pages)
    Error text stays beside its field; state uses classes.
 ================================================== */
+
 .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1584,6 +1590,7 @@ textarea.form-input {
    HTML: patient_dashboard.html, staff_dashboard.html, queue_tracking.html, appointment_details.html
    Only the patient's own data and anonymous tokens appear.
 ================================================== */
+
 .welcome-card {
     position: relative;
     display: flex;
@@ -1852,6 +1859,7 @@ textarea.form-input {
    HTML: staff_attendance.html, admin_staff.html, admin_attendance.html, admin_reports.html
    Reports use the same shared totals as the dashboards.
 ================================================== */
+
 .attendance-clock {
     padding: 30px 25px;
     text-align: center;
@@ -1937,13 +1945,16 @@ textarea.form-input {
    HTML: All 21 templates (shared code)
    Tables scroll locally rather than widening the page.
 ================================================== */
+
 @media (min-width: 1600px) {
+
     .portal-content {
         padding-top: 44px;
     }
 }
 
 @media (max-width: 1150px) {
+
     .sidebar {
         width: 216px;
         padding-left: 14px;
@@ -1983,6 +1994,7 @@ textarea.form-input {
 }
 
 @media (max-width: 900px) {
+
     .stats-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -2030,6 +2042,7 @@ textarea.form-input {
 }
 
 @media (max-width: 700px) {
+
     h1 {
         font-size: 26px;
     }
@@ -2348,6 +2361,7 @@ textarea.form-input {
    HTML: appointment_details.html, admin_reports.html
    Print only the relevant record, without portal controls.
 ================================================== */
+
 @media print {
 
     body,

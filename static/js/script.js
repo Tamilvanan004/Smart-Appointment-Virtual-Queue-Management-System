@@ -5,7 +5,8 @@
 // ==================================================
 // SCRIPT INDEX
 // Search for an HTML filename to find its related section.
-// Major sections are separated by exactly three blank lines.
+// Major sections use three blank lines; code blocks use one.
+// Search for BLOCK: to find a function, action or update area.
 // 1. SHARED INTERFACE: Safe DOM creation and feedback
 // 2. BACKEND DATA: Server-provided records and form actions
 // 3. SHARED RULES: Booking validation, queues and attendance
@@ -27,10 +28,14 @@
 // HTML literals contain developer markup. Interpolated
 // values become text nodes or attributes, never raw HTML.
 // ==================================================
+
+// BLOCK: html - Build safe HTML fragments from markup and values.
 function html(strings, ...values) {
     const template = document.createElement("template");
     const startIndex = html.valueIndex;
     let markup = strings[0];
+
+    // BLOCK: Create a safe placeholder for each interpolated value.
     values.forEach((value, index) => {
         const placeholder = `__value_${html.valueIndex++}__`;
         const insideTag = markup.lastIndexOf("<") > markup.lastIndexOf(">");
@@ -40,6 +45,8 @@ function html(strings, ...values) {
         markup += insideTag || insideTextArea ? placeholder : `<!--${placeholder}-->`;
         markup += strings[index + 1];
     });
+
+    // BLOCK: Parse the static markup and collect DOM nodes.
     template.innerHTML = markup;
     const marker = /__value_(\d+)__/g;
     const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT | NodeFilter.SHOW_COMMENT);
@@ -47,6 +54,8 @@ function html(strings, ...values) {
     while (walker.nextNode()) {
         nodes.push(walker.currentNode);
     }
+
+    // BLOCK: Replace placeholders with safe text or nodes.
     nodes.forEach(node => {
         if (node.nodeType === Node.COMMENT_NODE) {
             const match = /^__value_(\d+)__$/.exec(node.textContent);
@@ -83,8 +92,10 @@ function html(strings, ...values) {
     return template.content;
 }
 
+// BLOCK: HTML interpolation marker counter.
 html.valueIndex = 0;
 
+// BLOCK: appendSafeValue - Insert text, nodes or arrays safely.
 function appendSafeValue(parent, value) {
     if (Array.isArray(value)) {
         value.forEach(item => appendSafeValue(parent, item));
@@ -95,6 +106,7 @@ function appendSafeValue(parent, value) {
     }
 }
 
+// BLOCK: iconPaths - Shared SVG icon definitions.
 const iconPaths = {
     cross: ["M12 3v18M3 12h18"],
     grid: ["M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"],
@@ -118,11 +130,14 @@ const iconPaths = {
     close: ["m6 6 12 12M18 6 6 18"],
 };
 
+// BLOCK: icon - Build an SVG icon from the shared icon paths.
 function icon(name) {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", "0 0 24 24");
     svg.setAttribute("class", "icon");
     svg.setAttribute("aria-hidden", "true");
+
+    // BLOCK: Add the selected icon paths.
     (iconPaths[name] || iconPaths.scan).forEach(pathData => {
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.setAttribute("d", pathData);
@@ -131,10 +146,12 @@ function icon(name) {
     return svg;
 }
 
+// BLOCK: byId - Find a page element by its ID.
 function byId(id) {
     return document.getElementById(id);
 }
 
+// BLOCK: mount - Replace the contents of a page area.
 function mount(id, content) {
     const target = byId(id);
     if (target) {
@@ -142,6 +159,7 @@ function mount(id, content) {
     }
 }
 
+// BLOCK: showFeedback - Show a page message or validation error.
 function showFeedback(message, isError = false) {
     const feedback = byId("page-feedback");
     if (feedback) {
@@ -154,8 +172,10 @@ function showFeedback(message, isError = false) {
     }
 }
 
+// BLOCK: Notification dismissal timer.
 let toastTimeout;
 
+// BLOCK: showToast - Show a temporary notification.
 function showToast(message, isError = false) {
     const toast = byId("app-toast");
     toast.textContent = message;
@@ -165,6 +185,7 @@ function showToast(message, isError = false) {
     toastTimeout = setTimeout(() => { toast.hidden = true; }, 6000);
 }
 
+// BLOCK: setFieldError - Mark a field and show its validation message.
 function setFieldError(id, message) {
     const control = byId(id);
     const error = byId(`${id}-error`);
@@ -177,12 +198,14 @@ function setFieldError(id, message) {
     }
 }
 
+// BLOCK: clearFormErrors - Clear the previous errors in a form.
 function clearFormErrors(form) {
     form.querySelectorAll("[aria-invalid]").forEach(control => {
         setFieldError(control.id, "");
     });
 }
 
+// BLOCK: field - Build a labelled input and validation message.
 function field(id, name, label, type = "text", value = "", options = {}) {
     const fragment = html`
         <div class="field">
@@ -191,6 +214,8 @@ function field(id, name, label, type = "text", value = "", options = {}) {
                 value="${value}" aria-describedby="${id}-error" autocomplete="${options.autocomplete || "off"}">
             <p class="field-error" id="${id}-error" aria-live="polite"></p>
         </div>`;
+
+    // BLOCK: Apply field requirements and input limits.
     const input = fragment.querySelector("input");
     input.required = options.required !== false;
     if (options.min !== undefined) { input.min = options.min; }
@@ -201,6 +226,7 @@ function field(id, name, label, type = "text", value = "", options = {}) {
     return fragment;
 }
 
+// BLOCK: selectField - Build a labelled dropdown and its choices.
 function selectField(id, name, label, choices, value = "", options = {}) {
     const fragment = html`
         <div class="field">
@@ -210,12 +236,15 @@ function selectField(id, name, label, choices, value = "", options = {}) {
             </select>
             <p class="field-error" id="${id}-error" aria-live="polite"></p>
         </div>`;
+
+    // BLOCK: Apply the selected value and required state.
     const select = fragment.querySelector("select");
     select.value = value;
     select.required = options.required !== false;
     return fragment;
 }
 
+// BLOCK: textAreaField - Build a labelled multiline input.
 function textAreaField(id, name, label, value = "", required = true) {
     const fragment = html`
         <div class="field field-full">
@@ -227,6 +256,7 @@ function textAreaField(id, name, label, value = "", required = true) {
     return fragment;
 }
 
+// BLOCK: emptyState - Build a message for a page with no records.
 function emptyState(title, description, link = "", label = "Book an appointment") {
     return html`
         <div class="empty-state">
@@ -237,6 +267,7 @@ function emptyState(title, description, link = "", label = "Book an appointment"
         </div>`;
 }
 
+// BLOCK: statusBadge - Build the coloured appointment status label.
 function statusBadge(status) {
     const classes = {
         "Booked": "", "Checked In": "badge-amber", "In Progress": "",
@@ -245,6 +276,7 @@ function statusBadge(status) {
     return html`<span class="badge ${classes[status] || ""}">${status}</span>`;
 }
 
+// BLOCK: openModal - Open a dialog and handle its form submission.
 function openModal(title, content, onSubmit) {
     const dialog = byId("app-dialog");
     dialog.replaceChildren(html`
@@ -256,6 +288,8 @@ function openModal(title, content, onSubmit) {
             <div class="feedback is-hidden" id="dialog-feedback" role="alert"></div>
             ${content}
         </div>`);
+
+    // BLOCK: Connect dialog controls and validate submissions.
     byId("dialog-close-button").addEventListener("click", () => dialog.close());
     const form = byId("record-form");
     if (form && onSubmit) {
@@ -271,9 +305,12 @@ function openModal(title, content, onSubmit) {
             }
         });
     }
+
+    // BLOCK: Display the dialog and move focus inside.
     dialog.showModal();
 }
 
+// BLOCK: modalSaveActions - Build the dialog cancel and submit buttons.
 function modalSaveActions(label = "Save changes") {
     return html`<div class="modal-actions">
         <button class="button button-secondary" type="button" data-action="close-dialog">Cancel</button>
@@ -291,12 +328,19 @@ function modalSaveActions(label = "Save changes") {
 // Flask must supply only authorised records and enforce all
 // authentication, reservations, tokens and database changes.
 // ==================================================
+
+// BLOCK: Allowed appointment status labels.
 const statuses = ["Booked", "Checked In", "In Progress", "Completed", "Cancelled", "No-show"];
+
+// BLOCK: Backend collection names.
 const recordCollections = ["patients", "staff", "services", "slots", "appointments", "attendance"];
+
+// BLOCK: Current backend page records and user profile.
 let pageData = {};
 let appData = getPageRecords({});
 let currentUser = null;
 
+// BLOCK: getPageRecords - Read backend collections with empty-array defaults.
 // Input: backend JSON records. Return the same collections
 // with empty arrays for any collection not supplied yet.
 function getPageRecords(records) {
@@ -307,6 +351,7 @@ function getPageRecords(records) {
     return collections;
 }
 
+// BLOCK: readPageData - Parse and validate the backend page-data JSON.
 function readPageData() {
     const container = byId("page-data");
     if (!container || !container.textContent.trim()) { return {}; }
@@ -317,6 +362,7 @@ function readPageData() {
     return data;
 }
 
+// BLOCK: removeOldPreviewRecords - Remove the retired preview storage keys.
 // Remove only the retired preview's own keys. This cleanup
 // does not read saved profiles or clear unrelated browser data.
 function removeOldPreviewRecords() {
@@ -328,18 +374,22 @@ function removeOldPreviewRecords() {
     }
 }
 
+// BLOCK: getCurrentUser - Read the current backend user.
 function getCurrentUser() {
     return currentUser;
 }
 
+// BLOCK: getCurrentPatient - Find the current patient profile.
 function getCurrentPatient(data = appData) {
     return data.patients.find(patient => patient.id === currentUser?.patientId);
 }
 
+// BLOCK: getCurrentStaff - Find the current staff profile.
 function getCurrentStaff(data = appData) {
     return data.staff.find(staff => staff.id === currentUser?.staffId);
 }
 
+// BLOCK: setHiddenField - Add or update a hidden form value.
 function setHiddenField(form, name, value) {
     let input = Array.from(form.elements).find(control => control.name === name && !control.disabled);
     if (!input) {
@@ -352,12 +402,15 @@ function setHiddenField(form, name, value) {
     input.value = String(value ?? "");
 }
 
+// BLOCK: submitBackendForm - Validate the action URL and submit a backend form.
 // Input: a validated form and its action key. Submit only to
 // a URL provided by Flask in pageData.formActions. An absent
 // URL shows feedback without claiming the action succeeded.
 // The server must validate CSRF, roles and all submitted IDs.
 function submitBackendForm(form, actionName) {
     const endpoint = pageData.formActions?.[actionName] || form.getAttribute("action");
+
+    // BLOCK: Handle a missing backend action URL.
     if (!endpoint) {
         const feedback = byId("app-dialog")?.open ? byId("dialog-feedback") : byId("page-feedback");
         if (feedback) {
@@ -370,6 +423,8 @@ function submitBackendForm(form, actionName) {
         }
         return false;
     }
+
+    // BLOCK: Parse and validate the backend destination.
     let destination;
     try {
         destination = new URL(endpoint, window.location.href);
@@ -381,6 +436,8 @@ function submitBackendForm(form, actionName) {
         showToast("The form service is unavailable.", true);
         return false;
     }
+
+    // BLOCK: Prepare the POST request and include the CSRF token.
     form.action = destination.href;
     form.method = "post";
     if (pageData.csrfToken) { setHiddenField(form, "csrf_token", pageData.csrfToken); }
@@ -388,6 +445,7 @@ function submitBackendForm(form, actionName) {
     return true;
 }
 
+// BLOCK: submitRecordAction - Submit a record action using a temporary POST form.
 function submitRecordAction(actionName, fields = {}) {
     byId("server-action-form")?.remove();
     const form = document.createElement("form");
@@ -398,6 +456,7 @@ function submitRecordAction(actionName, fields = {}) {
     if (!submitBackendForm(form, actionName)) { form.remove(); }
 }
 
+// BLOCK: confirmRecordAction - Request confirmation before submitting a record action.
 function confirmRecordAction(title, message, actionName, fields) {
     openModal(title, html`<p>${message}</p>
         <form id="record-form" method="post">${modalSaveActions("Confirm")}</form>`, (values, form) => {
@@ -406,6 +465,7 @@ function confirmRecordAction(title, message, actionName, fields) {
     });
 }
 
+// BLOCK: localDate - Format a local date as YYYY-MM-DD.
 // Input: a local Date. Return YYYY-MM-DD without a UTC
 // conversion, so midnight bookings keep the intended date.
 function localDate(date = new Date()) {
@@ -415,12 +475,14 @@ function localDate(date = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
+// BLOCK: relativeDate - Find a local date relative to today.
 function relativeDate(days) {
     const date = new Date();
     date.setDate(date.getDate() + days);
     return localDate(date);
 }
 
+// BLOCK: formatDate - Format an appointment date for display.
 function formatDate(date, short = false) {
     if (!date) { return "—"; }
     const parsed = new Date(`${date}T12:00:00`);
@@ -430,11 +492,13 @@ function formatDate(date, short = false) {
     });
 }
 
+// BLOCK: formatTime - Format a scheduled scan time.
 function formatTime(time) {
     if (!time) { return "—"; }
     return new Date(`2000-01-01T${time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+// BLOCK: formatTimestamp - Format an attendance timestamp.
 function formatTimestamp(timestamp) {
     if (!timestamp) { return "—"; }
     return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -449,12 +513,15 @@ function formatTimestamp(timestamp) {
 // These helpers validate and display backend records only.
 // Flask must recheck availability and persist every change.
 // ==================================================
+
+// BLOCK: getAppointmentContext - Find the slot and service for an appointment.
 function getAppointmentContext(appointment, data = appData) {
     const slot = data.slots.find(record => record.id === appointment?.slotId);
     const service = data.services.find(record => record.id === slot?.serviceId);
     return { slot, service };
 }
 
+// BLOCK: getSlotAvailability - Calculate slot reservations and remaining capacity.
 // Input: server-provided records and the selected slot ID.
 // Output: availability, reason, reserved and remaining places.
 function getSlotAvailability(data, slotId) {
@@ -471,11 +538,13 @@ function getSlotAvailability(data, slotId) {
     return { available: reason === "Available", reason, reserved, remaining };
 }
 
+// BLOCK: isFutureBooked - Check whether a booking can still be changed.
 function isFutureBooked(appointment, data = appData) {
     const { slot } = getAppointmentContext(appointment, data);
     return Boolean(slot && appointment.status === "Booked" && new Date(`${slot.date}T${slot.time}`) > new Date());
 }
 
+// BLOCK: requireAppointmentAccess - Check which appointment the current profile can view.
 function requireAppointmentAccess(data, appointmentId, management = false) {
     const appointment = data.appointments.find(record => record.id === appointmentId);
     const user = getCurrentUser();
@@ -494,7 +563,7 @@ function requireAppointmentAccess(data, appointmentId, management = false) {
     return appointment;
 }
 
-
+// BLOCK: validateBooking - Validate patient details and the selected slot.
 // Input: submitted booking fields and fresh shared records.
 // Return field-ID/error pairs; an empty object means valid.
 function validateBooking(details, data) {
@@ -503,9 +572,13 @@ function validateBooking(details, data) {
     if (!/^\d+$/.test(String(details.age)) || Number(details.age) < 1 || Number(details.age) > 120) { errors["booking-age"] = "Enter an age between 1 and 120."; }
     if (!/^\d{10}$/.test(details.contact)) { errors["booking-contact"] = "Enter a 10-digit contact number."; }
     if (!details.bodyPart.trim() || details.bodyPart.length > 100) { errors["booking-body-part"] = "Enter the body part to be scanned (up to 100 characters)."; }
+
+    // BLOCK: Validate scan service and referral requirements.
     const service = data.services.find(record => record.id === details.serviceId);
     if (!service?.active) { errors["booking-service"] = "Choose an active scan service."; }
     if (service?.referralRequired && !details.referral.trim()) { errors["booking-referral"] = "Referral details are required for this scan."; }
+
+    // BLOCK: Validate the selected appointment date and available slot.
     const slot = data.slots.find(record => record.id === details.slotId);
     if (!slot || slot.serviceId !== details.serviceId || slot.date !== details.date) { errors["booking-slot"] = "Choose a time slot for this scan and date."; }
     else if (!getSlotAvailability(data, slot.id).available) { errors["booking-slot"] = "This slot is no longer available. Choose another time."; }
@@ -513,6 +586,7 @@ function validateBooking(details, data) {
     return errors;
 }
 
+// BLOCK: getTransitionReason - Check whether an appointment status change is allowed.
 // Input: record, target status and shared model. Return an
 // explanation for an invalid transition, or an empty string.
 function getTransitionReason(appointment, nextStatus, data = appData) {
@@ -535,6 +609,7 @@ function getTransitionReason(appointment, nextStatus, data = appData) {
     return "";
 }
 
+// BLOCK: calculateQueue - Order active tokens and count patients ahead.
 // Input: fresh records and the patient's appointment. Return
 // current token, active membership and active patients ahead.
 // Booked, Completed, Cancelled and No-show records never wait.
@@ -545,16 +620,21 @@ function calculateQueue(data, appointment) {
         const otherSlot = getAppointmentContext(record, data).slot;
         return ["Checked In", "In Progress"].includes(record.status) && otherSlot?.serviceId === slot.serviceId && otherSlot.date === slot.date;
     });
+
+    // BLOCK: Order patients by scan progress, scheduled time and token.
     active.sort((first, second) => {
         if (first.status !== second.status) { return first.status === "In Progress" ? -1 : 1; }
         const firstSlot = getAppointmentContext(first, data).slot;
         const secondSlot = getAppointmentContext(second, data).slot;
         return firstSlot.time.localeCompare(secondSlot.time) || first.tokenSequence - second.tokenSequence || first.token.localeCompare(second.token);
     });
+
+    // BLOCK: Find the current patient position.
     const position = active.findIndex(record => record.id === appointment.id);
     return { current: active.find(record => record.status === "In Progress") || null, ahead: Math.max(0, position), active: position >= 0 };
 }
 
+// BLOCK: validateAttendance - Validate check-in and check-out timestamps.
 // Input: local/ISO timestamps and attendance date. Return an
 // error or an empty string. Future and reversed times fail.
 function validateAttendance(checkIn, checkOut, date) {
@@ -570,6 +650,7 @@ function validateAttendance(checkIn, checkOut, date) {
     return "";
 }
 
+// BLOCK: getDashboardTotals - Calculate booking and attendance totals.
 // Input: records, date and optional service/staff filters.
 // Return derived booking counts and centre-wide attendance.
 function getDashboardTotals(data, date, serviceId = "", staffId = "") {
@@ -599,7 +680,11 @@ function getDashboardTotals(data, date, serviceId = "", staffId = "") {
 // Navigation reflects page context and server-provided profile data.
 // Protected routes and authorisation must be enforced by Flask.
 // ==================================================
+
+// BLOCK: Current HTML page identifier.
 const pageName = document.body.dataset.page;
+
+// BLOCK: Patient, staff and administrator navigation links.
 const navigation = {
     patient: [
         ["patient_dashboard", "Dashboard", "grid"],
@@ -625,6 +710,7 @@ const navigation = {
     ]
 };
 
+// BLOCK: brand - Build the Scanova logo and home link.
 function brand() {
     return html`<a class="brand" href="index.html" aria-label="Scanova home">
         <span class="brand-mark">${icon("cross")}</span>
@@ -632,6 +718,7 @@ function brand() {
     </a>`;
 }
 
+// BLOCK: renderPublicNavigation - Build the public header and footer.
 function renderPublicNavigation() {
     byId("main-content").className = "public-content";
     mount("app-navigation", html`<header class="public-header">
@@ -651,12 +738,14 @@ function renderPublicNavigation() {
     byId("page-footer").className = "public-footer";
 }
 
+// BLOCK: getPageRole - Choose the portal role for the current page.
 function getPageRole() {
     if (pageName.startsWith("admin_")) { return "admin"; }
     if (pageName.startsWith("staff_")) { return "staff"; }
     return ["patient", "staff", "admin"].includes(currentUser?.role) ? currentUser.role : "patient";
 }
 
+// BLOCK: renderPortalNavigation - Build the sidebar, top bar and profile display.
 function renderPortalNavigation() {
     const role = getPageRole();
     const user = getCurrentUser();
@@ -664,6 +753,8 @@ function renderPortalNavigation() {
     const displayName = person?.name || (role === "admin" ? "Administrator" : role === "staff" ? "Staff" : "Patient");
     const initials = displayName.split(" ").map(part => part.charAt(0)).slice(0, 2).join("");
     byId("app-main").className = "portal-main";
+
+    // BLOCK: Build the portal sidebar.
     mount("app-navigation", html`<aside class="sidebar" id="portal-sidebar">
         ${brand()}
         <button class="modal-close sidebar-close" id="close-navigation-button" type="button" aria-label="Close navigation">${icon("close")}</button>
@@ -681,6 +772,8 @@ function renderPortalNavigation() {
             <button class="side-link logout-button" id="logout-button" type="button">${icon("logout")}Log out</button>
         </div>
     </aside>`);
+
+    // BLOCK: Build the portal header and footer.
     mount("app-topbar", html`<header class="topbar">
         <button class="button button-secondary menu-toggle" id="menu-toggle-button" type="button" aria-controls="portal-sidebar" aria-expanded="false" aria-label="Open navigation">${icon("menu")}</button>
         <p class="topbar-breadcrumb">${role === "admin" ? "Administrator" : role === "staff" ? "Staff portal" : "Patient portal"}<span>/ &nbsp; ${byId("page-title").textContent}</span></p>
@@ -689,6 +782,8 @@ function renderPortalNavigation() {
         </div>
     </header>`);
     mount("page-footer", html`<span>© ${new Date().getFullYear()} Scanova · Smart Appointment &amp; Virtual Queue Management System</span><span>Single scanning centre</span>`);
+
+    // BLOCK: Connect logout and mobile navigation controls.
     byId("logout-button").addEventListener("click", () => {
         submitRecordAction("logout");
     });
@@ -705,6 +800,7 @@ function renderPortalNavigation() {
     syncSidebarVisibility();
 }
 
+// BLOCK: syncSidebarVisibility - Disable hidden mobile navigation controls.
 function syncSidebarVisibility() {
     const sidebar = byId("portal-sidebar");
     if (sidebar) {
@@ -712,6 +808,7 @@ function syncSidebarVisibility() {
     }
 }
 
+// BLOCK: closeMobileNavigation - Close the mobile sidebar and restore button focus.
 function closeMobileNavigation() {
     byId("portal-sidebar")?.classList.remove("is-open");
     byId("menu-toggle-button")?.setAttribute("aria-expanded", "false");
@@ -720,7 +817,7 @@ function closeMobileNavigation() {
     syncSidebarVisibility();
 }
 
-
+// BLOCK: headingAction - Add controls beside the page heading.
 function headingAction(content) {
     mount("page-heading-actions", content);
 }
@@ -741,6 +838,7 @@ function headingAction(content) {
 // Home page introduction and scan workflow
 // ==================================================
 
+// BLOCK: renderHome - Build the home introduction, services and booking steps.
 function renderHome() {
     byId("page-heading").hidden = true;
     const bookingLink = currentUser?.role === "patient" ? "book_appointment.html" : "login.html";
@@ -793,6 +891,7 @@ function renderHome() {
 // Shared scan service cards
 // ==================================================
 
+// BLOCK: serviceCard - Build one scan service card.
 function serviceCard(service, compact = false) {
     const link = currentUser?.role === "patient" ? `book_appointment.html?service=${encodeURIComponent(service.id)}` : "login.html";
     return html`<article class="card service-card">
@@ -812,6 +911,7 @@ function serviceCard(service, compact = false) {
 // Scan service availability
 // ==================================================
 
+// BLOCK: renderServices - Show the available scan services.
 function renderServices() {
     mount("page-body", html`<div class="stack">
         ${appData.services.length && !appData.services.some(service => service.active) ? html`<div class="notice">${icon("info")}<p>No scan services are currently available for new bookings. Existing service information is shown below.</p></div>` : ""}
@@ -827,6 +927,7 @@ function renderServices() {
 // Account forms, password visibility and validation
 // ==================================================
 
+// BLOCK: passwordField - Build a password field with a visibility button.
 function passwordField(id, name, label, autocomplete) {
     const fragment = field(id, name, label, "password", "", { autocomplete });
     const input = fragment.querySelector("input");
@@ -837,6 +938,7 @@ function passwordField(id, name, label, autocomplete) {
     return fragment;
 }
 
+// BLOCK: renderAccountPage - Build the login or registration form.
 function renderAccountPage() {
     const registration = pageName === "register";
     mount("app-main", html`<div class="auth-layout">
@@ -867,6 +969,7 @@ function renderAccountPage() {
     byId("account-form").addEventListener("submit", submitAccountForm);
 }
 
+// BLOCK: submitAccountForm - Validate account fields before submitting to the backend.
 function submitAccountForm(event) {
     event.preventDefault();
     const registration = pageName === "register";
@@ -876,6 +979,8 @@ function submitAccountForm(event) {
     const errors = {};
     const email = String(values.get("email")).trim().toLowerCase();
     const password = String(values.get("password"));
+
+    // BLOCK: Validate email, password and registration fields.
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errors["account-email"] = "Enter a valid email address."; }
     if (password.length < 8) { errors["account-password"] = "Use at least 8 characters."; }
     if (registration) {
@@ -884,6 +989,8 @@ function submitAccountForm(event) {
         if (!values.get("confirm_password")) { errors["account-confirm-password"] = "Confirm your password."; }
         else if (password !== values.get("confirm_password")) { errors["account-confirm-password"] = "The passwords do not match."; }
     }
+
+    // BLOCK: Show inline validation errors before submitting.
     if (Object.keys(errors).length) {
         Object.entries(errors).forEach(([id, message]) => setFieldError(id, message));
         byId(Object.keys(errors)[0]).focus();
@@ -900,21 +1007,30 @@ function submitAccountForm(event) {
 // Validate visible slot information before submitting to Flask.
 // Only the backend can reserve a place and issue a token.
 // ==================================================
+
+// BLOCK: Current booking and submission state.
 let bookingAppointment = null;
 let bookingPending = false;
 
+// BLOCK: renderBooking - Build the booking or rescheduling form.
 function renderBooking() {
     const rescheduling = pageName === "reschedule_appointment";
     bookingAppointment = null;
+
+    // BLOCK: Load and validate the appointment being rescheduled.
     if (rescheduling) {
         try {
             bookingAppointment = requireAppointmentAccess(appData, new URLSearchParams(location.search).get("id"), true);
             if (!isFutureBooked(bookingAppointment)) { throw new Error("Only future Booked appointments can be rescheduled. The existing booking has been preserved."); }
         } catch (error) {
+
+            // BLOCK: Build the booking form and visit summary.
             mount("page-body", emptyState("Rescheduling unavailable", error.message, getPageRole() === "admin" ? "admin_appointments.html" : "my_appointments.html", "View appointments"));
             return;
         }
     }
+
+    // BLOCK: Choose the initial patient, service and appointment date.
     const patient = getCurrentPatient();
     const currentContext = getAppointmentContext(bookingAppointment);
     const queryService = new URLSearchParams(location.search).get("service");
@@ -954,6 +1070,8 @@ function renderBooking() {
             <div class="notice">${icon("info")}<p>Your appointment time helps organise your visit. The exact scan start time may vary. Check in at the centre to join the active queue.</p></div>
         </aside>
     </div>`);
+
+    // BLOCK: Connect service, date and slot changes.
     byId("booking-service").disabled = rescheduling;
     byId("booking-date").addEventListener("change", updateBookingSlots);
     byId("booking-service").addEventListener("change", updateBookingSlots);
@@ -962,6 +1080,7 @@ function renderBooking() {
     updateBookingSlots();
 }
 
+// BLOCK: updateBookingSlots - Refresh available times for the selected service and date.
 function updateBookingSlots() {
     const serviceId = byId("booking-service").value;
     const date = byId("booking-date").value;
@@ -971,6 +1090,8 @@ function updateBookingSlots() {
         referralField.hidden = !service?.referralRequired;
         byId("booking-referral").required = Boolean(service?.referralRequired);
     }
+
+    // BLOCK: Find the scheduled times and fill the slot dropdown.
     const slots = appData.slots.filter(slot => slot.serviceId === serviceId && slot.date === date).sort((first, second) => first.time.localeCompare(second.time));
     const select = byId("booking-slot");
     select.replaceChildren(html`<option value="">Select an available time</option>`);
@@ -983,6 +1104,8 @@ function updateBookingSlots() {
         option.disabled = !availability.available || isCurrent;
         select.append(option);
     });
+
+    // BLOCK: Build selectable slot buttons and refresh the summary.
     mount("booking-slot-grid", slots.length ? html`${slots.map(slot => {
         const availability = getSlotAvailability(appData, slot.id);
         const current = slot.id === bookingAppointment?.slotId;
@@ -995,6 +1118,7 @@ function updateBookingSlots() {
     updateBookingSummary();
 }
 
+// BLOCK: updateBookingSummary - Refresh the visit summary and selected slot button.
 function updateBookingSummary() {
     const service = appData.services.find(record => record.id === byId("booking-service").value);
     const slot = appData.slots.find(record => record.id === byId("booking-slot").value);
@@ -1012,12 +1136,15 @@ function updateBookingSummary() {
     });
 }
 
+// BLOCK: submitBookingForm - Validate and submit a booking or replacement slot.
 function submitBookingForm(event) {
     event.preventDefault();
     if (bookingPending) { return; }
     const form = event.currentTarget;
     clearFormErrors(form);
     const values = new FormData(form);
+
+    // BLOCK: Validate a replacement slot or a new booking.
     if (bookingAppointment) {
         const slotId = String(values.get("slot_id") || "");
         const replacement = appData.slots.find(slot => slot.id === slotId);
@@ -1041,6 +1168,8 @@ function submitBookingForm(event) {
             return;
         }
     }
+
+    // BLOCK: Submit the validated booking and prevent duplicate clicks.
     bookingPending = submitBackendForm(form, bookingAppointment ? "rescheduleAppointment" : "bookAppointment");
     byId("confirm-booking-button").disabled = bookingPending;
 }
@@ -1053,10 +1182,13 @@ function submitBookingForm(event) {
 // Patient lists are scoped by patient ID. Queue markup
 // contains anonymous tokens only, never other profiles.
 // ==================================================
+
+// BLOCK: statCard - Build one dashboard statistic card.
 function statCard(label, value, note, iconName, colour = "") {
     return html`<article class="card stat-card"><div class="stat-top"><p>${label}</p><span class="icon-box ${colour}">${icon(iconName)}</span></div><strong class="stat-number">${value}</strong><p class="stat-note">${note}</p></article>`;
 }
 
+// BLOCK: sortedAppointments - Sort appointments by their scheduled date and time.
 function sortedAppointments(records, data = appData) {
     return [...records].sort((first, second) => {
         const firstSlot = getAppointmentContext(first, data).slot;
@@ -1065,6 +1197,7 @@ function sortedAppointments(records, data = appData) {
     });
 }
 
+// BLOCK: patientAppointments - Select appointments belonging to the current patient.
 function patientAppointments() {
     return appData.appointments.filter(record => record.patientId === getCurrentPatient()?.id);
 }
@@ -1076,6 +1209,7 @@ function patientAppointments() {
 // Patient dashboard and next appointment
 // ==================================================
 
+// BLOCK: renderPatientDashboard - Build patient totals, upcoming visit and recent records.
 function renderPatientDashboard() {
     const patient = getCurrentPatient();
     const records = patientAppointments();
@@ -1103,6 +1237,7 @@ function renderPatientDashboard() {
         <section class="card record-history"><div class="card-header"><h2>Recent appointments</h2><a class="text-link" href="my_appointments.html">View all${icon("arrow")}</a></div><div id="dashboard-appointments">${appointmentTable(sortedAppointments(records).reverse().slice(0, 4), "patient", true)}</div></section>`);
 }
 
+// BLOCK: nextAppointmentCard - Build the upcoming appointment card.
 function nextAppointmentCard(appointment) {
     const { service, slot } = getAppointmentContext(appointment);
     return html`<div class="next-appointment"><div class="next-top"><div class="next-service"><span class="icon-box">${icon("scan")}</span><div><h3>${service?.name || "Unavailable service"}</h3><p>${appointment.bodyPart} · Scanova centre</p></div></div>${statusBadge(appointment.status)}</div>
@@ -1120,6 +1255,7 @@ function nextAppointmentCard(appointment) {
 // Shared appointment tables and booking actions
 // ==================================================
 
+// BLOCK: appointmentTable - Build the appointment table and row controls.
 function appointmentTable(records, mode = "patient", compact = false) {
     if (!records.length) { return emptyState("No appointments to show", "Try another filter, or book an appointment to get started.", mode === "patient" ? "book_appointment.html" : "", "Book an appointment"); }
     return html`<div class="table-wrap"><table><thead><tr>
@@ -1140,6 +1276,7 @@ function appointmentTable(records, mode = "patient", compact = false) {
     })}</tbody></table></div>`;
 }
 
+// BLOCK: appointmentActions - Build appointment controls for the selected portal.
 function appointmentActions(appointment, mode) {
     if (mode === "staff" || mode === "admin") {
         const next = { "Booked": "Checked In", "Checked In": "In Progress", "In Progress": "Completed" }[appointment.status];
@@ -1166,6 +1303,7 @@ function appointmentActions(appointment, mode) {
     return html`<a class="button button-soft button-small" href="queue_tracking.html?id=${appointment.id}">Queue</a>${manageBookingActions(appointment)}`;
 }
 
+// BLOCK: manageBookingActions - Build reschedule and cancellation controls.
 function manageBookingActions(appointment) {
     if (!isFutureBooked(appointment)) {
         return html`<span class="record-meta">Changes available only for future Booked appointments.</span>`;
@@ -1181,6 +1319,7 @@ function manageBookingActions(appointment) {
 // Appointment filters and lists
 // ==================================================
 
+// BLOCK: appointmentFilterControls - Build search, date, service and status filters.
 function appointmentFilterControls(mode) {
     return html`<div class="filters">
         ${mode === "patient" ? selectField("filter-period", "appointment_period", "Show appointments", [{ value: "all", label: "All appointments" }, { value: "upcoming", label: "Upcoming" }, { value: "past", label: "Past" }], "all", { required: false }) : field("filter-search", "search", "Search patient or token", "search", "", { required: false })}
@@ -1190,26 +1329,35 @@ function appointmentFilterControls(mode) {
     </div>`;
 }
 
+// BLOCK: serviceChoices - Build scan service options for dropdowns.
 function serviceChoices(includeAll = false, assignedIds = null) {
     const choices = appData.services.filter(service => !assignedIds || assignedIds.includes(service.id)).map(service => ({ value: service.id, label: `${service.name}${service.active ? "" : " (inactive)"}` }));
     return includeAll ? [{ value: "", label: "All scans" }, ...choices] : choices;
 }
 
+// BLOCK: renderAppointmentList - Build the appointment filters and results area.
 function renderAppointmentList(mode = "patient") {
     if (mode === "patient") { headingAction(html`<a class="button button-primary" href="book_appointment.html">${icon("cross")}Book an appointment</a>`); }
     mount("page-body", html`<section class="card">${appointmentFilterControls(mode)}<div id="appointment-list"></div></section>`);
+
+    // BLOCK: Connect appointment filter changes.
     ["filter-period", "filter-search", "filter-date", "filter-service", "filter-status"].forEach(id => {
         byId(id)?.addEventListener(id === "filter-search" ? "input" : "change", () => updateAppointmentList(mode));
     });
     updateAppointmentList(mode);
 }
 
+// BLOCK: updateAppointmentList - Apply the selected appointment filters.
 function updateAppointmentList(mode) {
     let records = mode === "patient" ? patientAppointments() : appData.appointments;
     if (mode === "staff") {
         const staff = getCurrentStaff();
+
+        // BLOCK: Apply search, date, service, status and period filters.
         records = records.filter(appointment => staff?.serviceIds.includes(getAppointmentContext(appointment).slot?.serviceId));
     }
+
+    // BLOCK: Read the active search and filter values.
     const query = byId("filter-search")?.value.trim().toLowerCase() || "";
     const date = byId("filter-date")?.value;
     const serviceId = byId("filter-service").value;
@@ -1233,6 +1381,7 @@ function updateAppointmentList(mode) {
 // Appointment information and printable token
 // ==================================================
 
+// BLOCK: renderAppointmentDetails - Build appointment information and the printable token.
 function renderAppointmentDetails() {
     const query = new URLSearchParams(location.search);
     let appointment;
@@ -1269,20 +1418,27 @@ function renderAppointmentDetails() {
 // Queue selection, token display and progress
 // ==================================================
 
+// BLOCK: renderQueuePage - Build the appointment selector for queue tracking.
 function renderQueuePage() {
     headingAction(html`<button class="button button-secondary" id="refresh-queue-button" type="button" data-action="refresh-page">Refresh queue</button>`);
     const records = sortedAppointments(patientAppointments());
     const requestedId = new URLSearchParams(location.search).get("id");
+
+    // BLOCK: Check access to an explicitly requested appointment.
     if (requestedId) {
         try { requireAppointmentAccess(appData, requestedId); }
         catch (error) { mount("page-body", emptyState("Queue unavailable", error.message, "my_appointments.html", "My appointments")); return; }
     }
     if (!records.length) { mount("page-body", emptyState("Your queue will appear here", "Book a scan to get your token, then check in when you arrive.", "book_appointment.html")); return; }
+
+    // BLOCK: Choose the current or next appointment for queue tracking.
     const next = records.find(appointment => {
         const { slot } = getAppointmentContext(appointment);
         return slot?.date >= localDate() && ["Booked", "Checked In", "In Progress"].includes(appointment.status);
     });
     const selected = requestedId || next?.id || records[records.length - 1].id;
+
+    // BLOCK: Build the appointment selector and queue display.
     mount("page-body", html`<div class="card filters no-print">${selectField("queue-appointment", "appointment_id", "Select your appointment", records.map(record => {
         const { slot, service } = getAppointmentContext(record);
         return { value: record.id, label: `${service?.name} · ${formatDate(slot?.date, true)} · ${formatTime(slot?.time)} · ${record.tokenLabel}` };
@@ -1291,6 +1447,7 @@ function renderQueuePage() {
     updateQueueDisplay();
 }
 
+// BLOCK: updateQueueDisplay - Refresh the current token, queue position and visit stages.
 function updateQueueDisplay() {
     const selectedId = byId("queue-appointment")?.value;
     if (!selectedId) { return; }
@@ -1316,6 +1473,7 @@ function updateQueueDisplay() {
 // Shared cancellation confirmation
 // ==================================================
 
+// BLOCK: confirmCancellation - Check cancellation eligibility and open confirmation.
 function confirmCancellation(appointmentId) {
     const appointment = requireAppointmentAccess(appData, appointmentId, true);
     if (!isFutureBooked(appointment)) { throw new Error("Only future Booked appointments can be cancelled."); }
@@ -1338,6 +1496,7 @@ function confirmCancellation(appointmentId) {
 // Staff dashboard and assigned activity
 // ==================================================
 
+// BLOCK: renderStaffDashboard - Build assigned scan totals and staff shortcuts.
 function renderStaffDashboard() {
     const staff = getCurrentStaff() || { id: "", name: "Staff", serviceIds: [] };
     const totals = getDashboardTotals(appData, localDate(), "", staff.id || "unassigned");
@@ -1369,6 +1528,7 @@ function renderStaffDashboard() {
 // Workday check-in, check-out and personal history
 // ==================================================
 
+// BLOCK: renderStaffAttendance - Build workday controls and attendance history.
 function renderStaffAttendance() {
     const staff = getCurrentStaff() || { id: "" };
     const today = appData.attendance.find(record => record.staffId === staff.id && record.date === localDate());
@@ -1392,6 +1552,7 @@ function renderStaffAttendance() {
 // Shared attendance history table
 // ==================================================
 
+// BLOCK: attendanceTable - Build staff attendance rows and correction controls.
 function attendanceTable(records, administrative = true) {
     if (!records.length) { return emptyState("No attendance records yet", administrative ? "Staff workday check-ins will appear here. Try another date or staff filter." : "Your attendance history will appear after your first workday check-in."); }
     return html`<div class="table-wrap"><table><thead><tr>${administrative ? html`<th scope="col">Staff member</th>` : ""}<th scope="col">Date</th><th scope="col">Check-in</th><th scope="col">Check-out</th><th scope="col">Status</th><th scope="col">${administrative ? "Corrections" : "Notes"}</th></tr></thead>
@@ -1419,6 +1580,7 @@ function attendanceTable(records, administrative = true) {
 // Shared patient and staff profile validation
 // ==================================================
 
+// BLOCK: validateProfile - Validate patient and staff contact details.
 function validateProfile(values) {
     const name = String(values.get("patient_name") || values.get("staff_name") || "").trim();
     const email = String(values.get("email") || "").trim().toLowerCase();
@@ -1435,6 +1597,7 @@ function validateProfile(values) {
 // Scan service management
 // ==================================================
 
+// BLOCK: renderAdminServices - Build the scan service management table.
 function renderAdminServices() {
     headingAction(html`<button class="button button-primary" id="add-service-button" type="button" data-action="add-service">${icon("cross")}Add scan service</button>`);
     mount("page-body", html`<section class="card"><div class="card-header"><div><h2>Centre scan services</h2><p>Inactive scans keep their history and cannot accept new bookings.</p></div><span class="badge">${appData.services.length} services</span></div>
@@ -1444,6 +1607,7 @@ function renderAdminServices() {
     </section>`);
 }
 
+// BLOCK: editService - Open and validate the scan service editor.
 function editService(serviceId = "") {
     const service = appData.services.find(record => record.id === serviceId);
     if (serviceId && !service) { throw new Error("This service is unavailable."); }
@@ -1466,6 +1630,7 @@ function editService(serviceId = "") {
 
 }
 
+// BLOCK: toggleService - Submit a service activation or deactivation request.
 function toggleService(serviceId) {
     const service = appData.services.find(record => record.id === serviceId);
     if (!service) { throw new Error("This service is unavailable."); }
@@ -1479,6 +1644,7 @@ function toggleService(serviceId) {
 // Time slot management
 // ==================================================
 
+// BLOCK: renderAdminSlots - Build time slot filters and scheduling controls.
 function renderAdminSlots() {
     headingAction(html`<button class="button button-primary" id="add-slot-button" type="button" data-action="add-slot">${icon("cross")}Add time slot</button>`);
     mount("page-body", html`<section class="card"><div class="filters">
@@ -1490,6 +1656,7 @@ function renderAdminSlots() {
     updateSlotList();
 }
 
+// BLOCK: updateSlotList - Refresh slot capacity, availability and history controls.
 function updateSlotList() {
     const serviceId = byId("slot-filter-service").value;
     const date = byId("slot-filter-date").value;
@@ -1503,6 +1670,7 @@ function updateSlotList() {
     })}</tbody></table></div>` : emptyState("No time slots for this selection", "Choose another date or add a time slot for this service."));
 }
 
+// BLOCK: editSlot - Open and validate the time slot editor.
 function editSlot(slotId = "") {
     const slot = appData.slots.find(record => record.id === slotId);
     if (slotId && !slot) { throw new Error("This slot is unavailable."); }
@@ -1533,6 +1701,7 @@ function editSlot(slotId = "") {
     byId("slot-time").readOnly = Boolean(hasHistory);
 }
 
+// BLOCK: deleteSlot - Protect slot history and confirm deletion.
 function deleteSlot(slotId) {
     if (appData.appointments.some(record => record.slotId === slotId || record.history?.some(item => item.slotId === slotId))) {
         throw new Error("Slots containing appointment history cannot be deleted.");
@@ -1547,18 +1716,21 @@ function deleteSlot(slotId) {
 // Patient records and appointment history
 // ==================================================
 
+// BLOCK: renderAdminPatients - Build the patient search and results area.
 function renderAdminPatients() {
     mount("page-body", html`<section class="card"><div class="filters">${field("patient-search", "patient_search", "Search patients by name, email or contact", "search", "", { required: false })}</div><div id="patient-list"></div></section>`);
     byId("patient-search").addEventListener("input", updatePatientList);
     updatePatientList();
 }
 
+// BLOCK: updatePatientList - Filter patients by name, email or contact.
 function updatePatientList() {
     const query = byId("patient-search").value.trim().toLowerCase();
     const patients = appData.patients.filter(patient => `${patient.name} ${patient.email} ${patient.contact}`.toLowerCase().includes(query));
     mount("patient-list", patients.length ? html`<div class="table-wrap"><table><thead><tr><th scope="col">Patient</th><th scope="col">Email</th><th scope="col">Contact</th><th scope="col">Appointments</th><th scope="col">Actions</th></tr></thead><tbody>${patients.map(patient => html`<tr><td><strong>${patient.name}</strong><p class="muted">${patient.age ? `Age ${patient.age}` : "Age not provided"}</p></td><td>${patient.email}</td><td>${patient.contact}</td><td>${appData.appointments.filter(record => record.patientId === patient.id).length}</td><td><div class="row-actions"><button class="button button-secondary button-small" type="button" id="edit-patient-${patient.id}" data-action="edit-patient" data-id="${patient.id}">Edit profile</button><button class="button button-soft button-small" type="button" id="history-patient-${patient.id}" data-action="patient-history" data-id="${patient.id}">View history</button></div></td></tr>`)}</tbody></table></div>` : emptyState("No matching patients", "Try another name, email or contact number."));
 }
 
+// BLOCK: editPatient - Open and validate the patient profile editor.
 function editPatient(patientId) {
     const patient = appData.patients.find(record => record.id === patientId);
     if (!patient) { throw new Error("This patient profile is unavailable."); }
@@ -1577,6 +1749,7 @@ function editPatient(patientId) {
 
 }
 
+// BLOCK: showPatientHistory - Show a patient appointment history dialog.
 function showPatientHistory(patientId) {
     const patient = appData.patients.find(record => record.id === patientId);
     if (!patient) { throw new Error("This patient profile is unavailable."); }
@@ -1591,6 +1764,7 @@ function showPatientHistory(patientId) {
 // Staff profiles and scan assignments
 // ==================================================
 
+// BLOCK: renderAdminStaff - Build staff profiles and service assignments.
 function renderAdminStaff() {
     headingAction(html`<button class="button button-primary" id="add-staff-button" type="button" data-action="add-staff">${icon("cross")}Add staff profile</button>`);
     mount("page-body", html`<section class="card"><div class="card-header"><div><h2>Your centre team</h2><p>Service assignments determine which appointments a staff member can manage.</p></div></div>
@@ -1598,6 +1772,7 @@ function renderAdminStaff() {
     </section>`);
 }
 
+// BLOCK: editStaff - Open and validate the staff profile editor.
 function editStaff(staffId = "") {
     const staff = appData.staff.find(record => record.id === staffId);
     if (staffId && !staff) { throw new Error("This staff profile is unavailable."); }
@@ -1622,6 +1797,7 @@ function editStaff(staffId = "") {
 
 }
 
+// BLOCK: toggleStaff - Submit a staff activation or deactivation request.
 function toggleStaff(staffId) {
     const staff = appData.staff.find(record => record.id === staffId);
     if (!staff) { throw new Error("This staff profile is unavailable."); }
@@ -1644,6 +1820,7 @@ function toggleStaff(staffId) {
 // Centre overview and date summaries
 // ==================================================
 
+// BLOCK: renderAdminDashboard - Build the centre overview and date control.
 function renderAdminDashboard() {
     headingAction(field("summary-date", "summary_date", "Overview date", "date", localDate()));
     mount("page-body", html`<div id="admin-summary"></div><div class="grid-two"><section class="card"><div class="card-header"><div><h2>Activity by scan service</h2><p>Appointments and patient progress for the selected day.</p></div><a class="text-link" href="admin_reports.html">Daily reports${icon("arrow")}</a></div><div id="admin-service-summary"></div></section>
@@ -1657,6 +1834,7 @@ function renderAdminDashboard() {
     updateAdminDashboard();
 }
 
+// BLOCK: adminStatCards - Build centre booking and attendance cards.
 function adminStatCards(totals) {
     return html`<div class="stats-grid stats-six">
         ${statCard("Total bookings", totals.bookings, "All appointment statuses", "calendar")}
@@ -1668,6 +1846,7 @@ function adminStatCards(totals) {
     </div>`;
 }
 
+// BLOCK: updateAdminDashboard - Refresh the overview for the selected date.
 function updateAdminDashboard() {
     const date = byId("summary-date").value;
     mount("admin-summary", adminStatCards(getDashboardTotals(appData, date)));
@@ -1682,6 +1861,7 @@ function updateAdminDashboard() {
 // Shared scan service totals
 // ==================================================
 
+// BLOCK: serviceSummaryTable - Build booking totals for each scan service.
 function serviceSummaryTable(date, selectedService = "") {
     const services = appData.services.filter(service => !selectedService || service.id === selectedService);
     if (!services.length) { return emptyState("No scan services", "Add a service to begin tracking daily scan activity."); }
@@ -1698,6 +1878,7 @@ function serviceSummaryTable(date, selectedService = "") {
 // Attendance review and timestamp corrections
 // ==================================================
 
+// BLOCK: renderAdminAttendance - Build staff and date attendance filters.
 function renderAdminAttendance() {
     mount("page-body", html`<section class="card"><div class="filters">
         ${selectField("attendance-filter-staff", "staff_id", "Staff member", [{ value: "", label: "All staff" }, ...appData.staff.map(staff => ({ value: staff.id, label: staff.name }))], "", { required: false })}
@@ -1708,6 +1889,7 @@ function renderAdminAttendance() {
     updateAttendanceList();
 }
 
+// BLOCK: updateAttendanceList - Filter and sort the attendance records.
 function updateAttendanceList() {
     const staffId = byId("attendance-filter-staff").value;
     const date = byId("attendance-filter-date").value;
@@ -1715,6 +1897,7 @@ function updateAttendanceList() {
     mount("attendance-list", attendanceTable(records));
 }
 
+// BLOCK: localDateTimeValue - Convert a timestamp for a local datetime input.
 function localDateTimeValue(timestamp) {
     if (!timestamp) { return ""; }
     const date = new Date(timestamp);
@@ -1722,6 +1905,7 @@ function localDateTimeValue(timestamp) {
     return `${localDate(date)}T${time}`;
 }
 
+// BLOCK: editAttendance - Open and validate an attendance correction.
 function editAttendance(attendanceId) {
     const attendance = appData.attendance.find(record => record.id === attendanceId);
     if (!attendance) { throw new Error("This attendance record is unavailable."); }
@@ -1756,6 +1940,7 @@ function editAttendance(attendanceId) {
 // Daily summary and print report
 // ==================================================
 
+// BLOCK: renderReports - Build daily report filters and print control.
 function renderReports() {
     headingAction(html`<button class="button button-secondary" id="print-report-button" type="button" data-action="print">${icon("print")}Print daily report</button>`);
     mount("page-body", html`<section class="card no-print"><div class="filters">
@@ -1767,6 +1952,7 @@ function renderReports() {
     updateReports();
 }
 
+// BLOCK: updateReports - Refresh the daily scan and attendance report.
 function updateReports() {
     const date = byId("report-date").value;
     const serviceId = byId("report-service").value;
@@ -1784,6 +1970,7 @@ function updateReports() {
     <p class="record-meta">Generated ${new Date().toLocaleString()}</p>`);
 }
 
+// BLOCK: attendanceTableForReport - Build the printable staff attendance table.
 function attendanceTableForReport(records) {
     if (!records.length) { return emptyState("No staff attendance for this date", "No staff check-ins have been recorded for the selected day."); }
     return html`<div class="table-wrap"><table><thead><tr><th scope="col">Staff member</th><th scope="col">Check-in</th><th scope="col">Check-out</th><th scope="col">Corrections</th></tr></thead><tbody>${records.map(record => html`<tr><td>${appData.staff.find(staff => staff.id === record.staffId)?.name || "Unavailable profile"}</td><td>${formatTimestamp(record.checkIn)}</td><td>${formatTimestamp(record.checkOut)}</td><td>${record.corrections.length}</td></tr>`)}</tbody></table></div>`;
@@ -1798,7 +1985,7 @@ function attendanceTableForReport(records) {
 // storage simulate account access, saved records or scan activity.
 // ==================================================
 
-
+// BLOCK: handleSharedAction - Handle buttons through their data-action values.
 function handleSharedAction(event) {
     const control = event.target.closest("[data-action]");
     if (!control || control.disabled) { return; }
@@ -1806,6 +1993,8 @@ function handleSharedAction(event) {
     const recordId = control.dataset.id;
     try {
         switch (action) {
+
+            // BLOCK: toggle-password - Show or hide a password.
             case "toggle-password": {
                 const input = byId(control.dataset.target);
                 const visible = input.type === "password";
@@ -1815,13 +2004,21 @@ function handleSharedAction(event) {
                 control.setAttribute("aria-label", (visible ? "Hide" : "Show") + " password");
                 break;
             }
+
+            // BLOCK: close-dialog - Close the active dialog.
             case "close-dialog": byId("app-dialog").close(); break;
+
+            // BLOCK: select-slot - Select a booking time slot.
             case "select-slot":
                 byId("booking-slot").value = recordId;
                 setFieldError("booking-slot", "");
                 updateBookingSummary();
                 break;
+
+            // BLOCK: cancel-appointment - Confirm appointment cancellation.
             case "cancel-appointment": confirmCancellation(recordId); break;
+
+            // BLOCK: status - Submit an appointment status change.
             case "status": {
                 const appointment = appData.appointments.find(record => record.id === recordId);
                 if (!appointment) { throw new Error("Appointment unavailable."); }
@@ -1830,21 +2027,53 @@ function handleSharedAction(event) {
                 submitRecordAction("updateAppointmentStatus", { appointment_id: recordId, status: control.dataset.status });
                 break;
             }
+
+            // BLOCK: staff-check-in - Submit staff workday check-in.
             case "staff-check-in": submitRecordAction("staffCheckIn"); break;
+
+            // BLOCK: staff-check-out - Submit staff workday check-out.
             case "staff-check-out": submitRecordAction("staffCheckOut"); break;
+
+            // BLOCK: add-service - Open a new scan service form.
             case "add-service": editService(); break;
+
+            // BLOCK: edit-service - Open an existing scan service.
             case "edit-service": editService(recordId); break;
+
+            // BLOCK: toggle-service - Change scan service availability.
             case "toggle-service": toggleService(recordId); break;
+
+            // BLOCK: add-slot - Open a new time slot form.
             case "add-slot": editSlot(); break;
+
+            // BLOCK: edit-slot - Open an existing time slot.
             case "edit-slot": editSlot(recordId); break;
+
+            // BLOCK: delete-slot - Confirm deletion of an unused slot.
             case "delete-slot": deleteSlot(recordId); break;
+
+            // BLOCK: edit-patient - Open the patient profile editor.
             case "edit-patient": editPatient(recordId); break;
+
+            // BLOCK: patient-history - Open patient appointment history.
             case "patient-history": showPatientHistory(recordId); break;
+
+            // BLOCK: add-staff - Open a new staff profile form.
             case "add-staff": editStaff(); break;
+
+            // BLOCK: edit-staff - Open an existing staff profile.
             case "edit-staff": editStaff(recordId); break;
+
+            // BLOCK: toggle-staff - Change staff profile status.
             case "toggle-staff": toggleStaff(recordId); break;
+
+            // BLOCK: edit-attendance - Review an attendance correction.
             case "edit-attendance": editAttendance(recordId); break;
+
+            // BLOCK: refresh-page - Reload queue data from the server.
             case "refresh-page": window.location.reload(); break;
+
+            // BLOCK: print - Print the token or report.
             case "print": window.print(); break;
         }
     } catch (error) {
@@ -1852,12 +2081,15 @@ function handleSharedAction(event) {
     }
 }
 
+// BLOCK: initialisePage - Load backend data and render the selected HTML page.
 function initialisePage() {
     try {
         removeOldPreviewRecords();
         pageData = readPageData();
         appData = getPageRecords(pageData.records);
         currentUser = pageData.currentUser || null;
+
+        // BLOCK: Choose the account or portal page renderer.
         if (["login", "register"].includes(pageName)) {
             renderAccountPage();
         } else {
@@ -1897,12 +2129,15 @@ function initialisePage() {
     }
 }
 
+// BLOCK: Shared button click listener.
 document.addEventListener("click", handleSharedAction);
 
+// BLOCK: Escape key listener for mobile navigation.
 document.addEventListener("keydown", event => {
     if (event.key === "Escape" && byId("portal-sidebar")?.classList.contains("is-open")) {
         closeMobileNavigation();
     }
 });
 
+// BLOCK: Start the page after the deferred script loads.
 initialisePage();

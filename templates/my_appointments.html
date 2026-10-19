@@ -2,15 +2,20 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
         content="Your upcoming scans and appointment history, in one place. Smart Appointment &amp; Virtual Queue Management System, a single scanning centre appointment system.">
     <meta name="theme-color" content="#6d28d9">
+
     <title>My appointments | Scanova</title>
+
     <link rel="stylesheet" href="../static/css/style.css">
+
     <!-- BACKEND DATA: Flask can safely serialize records, currentUser, formActions and csrfToken here. -->
     <script id="page-data" type="application/json">{}</script>
+
     <script src="../static/js/script.js" defer></script>
 </head>
 
@@ -19,33 +24,43 @@
          SHARED NAVIGATION: Accessible entry and role navigation
          Shared JavaScript builds the navigation for this page.
     ================================================== -->
+
     <a class="skip-link" href="#main-content">Skip to main content</a>
+
     <div id="app-navigation"></div>
 
     <main id="app-main">
+
         <div id="app-topbar"></div>
+
         <div class="portal-content" id="main-content" tabindex="-1">
             <!-- ==================================================
                  PATIENT RECORDS: my appointments
                  Records are read from the backend page-data JSON when available.
             ================================================== -->
+
             <div class="page-heading" id="page-heading">
                 <div>
                     <h1 id="page-title">My appointments</h1>
                     <p>Your upcoming scans and appointment history, in one place.</p>
                 </div>
+
                 <div id="page-heading-actions"></div>
             </div>
+
             <div class="feedback" id="page-feedback" role="status" hidden></div>
+
             <div id="page-body" aria-busy="true">
                 <p class="muted">Loading your page...</p>
             </div>
+
             <noscript>
                 <p>This interactive frontend needs JavaScript. Enable JavaScript in your browser to use this page.
                 </p>
                 <a href="index.html">Return to the home page</a>
             </noscript>
             <!-- END PATIENT RECORDS: my appointments -->
+
             <footer class="page-footer" id="page-footer"></footer>
         </div>
     </main>
@@ -54,7 +69,9 @@
          SHARED INTERFACE: Confirmation dialogs and feedback
          Dialog contents are created using safe DOM nodes.
     ================================================== -->
+
     <dialog class="modal" id="app-dialog" aria-labelledby="dialog-heading"></dialog>
+
     <div class="toast" id="app-toast" role="status" aria-live="polite" hidden></div>
 </body>
 

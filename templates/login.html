@@ -2,15 +2,20 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
         content="Log in to manage your appointments. Smart Appointment &amp; Virtual Queue Management System, a single scanning centre appointment system.">
     <meta name="theme-color" content="#6d28d9">
+
     <title>Welcome back | Scanova</title>
+
     <link rel="stylesheet" href="../static/css/style.css">
+
     <!-- BACKEND DATA: Flask can safely serialize records, currentUser, formActions and csrfToken here. -->
     <script id="page-data" type="application/json">{}</script>
+
     <script src="../static/js/script.js" defer></script>
 </head>
 
@@ -19,21 +24,29 @@
          ACCOUNT ACCESS: Accessible entry
          Skip directly to the account form.
     ================================================== -->
+
     <a class="skip-link" href="#main-content">Skip to main content</a>
 
     <!-- ==================================================
          ACCOUNT ACCESS: Initial page and accessible fallback
          The shared account renderer replaces this loading view.
     ================================================== -->
+
     <main id="app-main">
+
         <div class="auth-main" id="main-content" tabindex="-1">
+
             <div class="auth-panel">
+
                 <h1>Welcome back</h1>
                 <p class="muted">Log in to manage your appointments.</p>
+
                 <div class="feedback" id="page-feedback" role="status" hidden></div>
+
                 <div id="page-body" aria-busy="true">
                     <p class="muted">Loading your account form...</p>
                 </div>
+
                 <noscript>
                     <p>Enable JavaScript in your browser to use the account form.</p>
                     <a href="index.html">Return to the home page</a>
@@ -46,7 +59,9 @@
          SHARED INTERFACE: Confirmation dialogs and feedback
          Dialog contents are created using safe DOM nodes.
     ================================================== -->
+
     <dialog class="modal" id="app-dialog" aria-labelledby="dialog-heading"></dialog>
+
     <div class="toast" id="app-toast" role="status" aria-live="polite" hidden></div>
 </body>
 
