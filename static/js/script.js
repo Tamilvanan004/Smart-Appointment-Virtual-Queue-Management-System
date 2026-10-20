@@ -362,18 +362,6 @@ function readPageData() {
     return data;
 }
 
-// BLOCK: removeOldPreviewRecords - Remove the retired preview storage keys.
-// Remove only the retired preview's own keys. This cleanup
-// does not read saved profiles or clear unrelated browser data.
-function removeOldPreviewRecords() {
-    try {
-        window.localStorage.removeItem("scanova-demo-v1");
-        window.sessionStorage.removeItem("scanova-session");
-    } catch (error) {
-        // Restricted browser storage must not prevent server-rendered pages.
-    }
-}
-
 // BLOCK: getCurrentUser - Read the current backend user.
 function getCurrentUser() {
     return currentUser;
@@ -895,7 +883,7 @@ function renderHome() {
 function serviceCard(service, compact = false) {
     const link = currentUser?.role === "patient" ? `book_appointment.html?service=${encodeURIComponent(service.id)}` : "login.html";
     return html`<article class="card service-card">
-        <div class="service-card-top"><span class="icon-box ${service.id === "ct" ? "pink" : ""}">${icon("scan")}</span>
+        <div class="service-card-top"><span class="icon-box ${service.code === "CT" ? "pink" : ""}">${icon("scan")}</span>
             <span class="badge ${service.active ? "badge-green" : "badge-gray"}">${service.active ? "Available" : "Inactive"}</span>
         </div>
         <h3>${service.name}</h3><p class="service-description">${service.description}</p>
@@ -929,7 +917,7 @@ function renderServices() {
 
 // BLOCK: passwordField - Build a password field with a visibility button.
 function passwordField(id, name, label, autocomplete) {
-    const fragment = field(id, name, label, "password", "", { autocomplete });
+    const fragment = field(id, name, label, "password", "", { autocomplete, maxLength: 128 });
     const input = fragment.querySelector("input");
     const wrapper = document.createElement("div");
     wrapper.className = "password-wrap";
@@ -941,6 +929,7 @@ function passwordField(id, name, label, autocomplete) {
 // BLOCK: renderAccountPage - Build the login or registration form.
 function renderAccountPage() {
     const registration = pageName === "register";
+    const setup = pageData.accountMode === "setup";
     mount("app-main", html`<div class="auth-layout">
         <aside class="auth-aside">${brand()}
             <div class="auth-intro"><p class="eyebrow">Welcome to a calmer visit</p><h2>A little planning.<br>A lot less waiting.</h2><p>Your scan appointments and queue updates, together in one simple place.</p>
@@ -953,7 +942,7 @@ function renderAccountPage() {
         </aside>
         <section class="auth-main" id="main-content" tabindex="-1"><div class="auth-panel">
             <a class="text-link" href="index.html">← Back to home</a>
-            <h1>${registration ? "Let’s get you started." : "Good to see you."}</h1><p>${registration ? "Create your patient account in a few simple steps." : "Log in to manage your appointments."}</p>
+            <h1>${setup ? "Set up your centre." : registration ? "Let’s get you started." : "Good to see you."}</h1><p>${setup ? "Create the first administrator account. This setup is available only once." : registration ? "Create your patient account in a few simple steps." : "Log in to manage your appointments."}</p>
             <div class="feedback" id="page-feedback" role="status" hidden></div>
             <form id="account-form" method="post" novalidate>
                 ${registration ? field("account-full-name", "patient_name", "Full name", "text", "", { autocomplete: "name", maxLength: 80 }) : ""}
@@ -961,9 +950,9 @@ function renderAccountPage() {
                 ${registration ? field("account-contact", "contact_number", "Contact number", "tel", "", { autocomplete: "tel" }) : ""}
                 ${passwordField("account-password", "password", "Password", registration ? "new-password" : "current-password")}
                 ${registration ? passwordField("account-confirm-password", "confirm_password", "Confirm password", "new-password") : ""}
-                <button class="button button-primary button-wide" id="account-submit-button" type="submit">${registration ? "Create account" : "Log in"}${icon("arrow")}</button>
+                <button class="button button-primary button-wide" id="account-submit-button" type="submit">${setup ? "Create administrator account" : registration ? "Create account" : "Log in"}${icon("arrow")}</button>
             </form>
-            <p class="auth-bottom">${registration ? "Already have an account?" : "New to Scanova?"} <a class="text-link" href="${registration ? "login.html" : "register.html"}">${registration ? "Log in" : "Create an account"}</a></p>
+            ${setup ? html`<p class="auth-bottom">Use these details to manage your centre after setup.</p>` : html`<p class="auth-bottom">${registration ? "Already have an account?" : "New to Scanova?"} <a class="text-link" href="${registration ? "login.html" : "register.html"}">${registration ? "Log in" : "Create an account"}</a></p>`}
         </div></section>
     </div>`);
     byId("account-form").addEventListener("submit", submitAccountForm);
@@ -982,7 +971,7 @@ function submitAccountForm(event) {
 
     // BLOCK: Validate email, password and registration fields.
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errors["account-email"] = "Enter a valid email address."; }
-    if (password.length < 8) { errors["account-password"] = "Use at least 8 characters."; }
+    if (password.length < 8 || password.length > 128) { errors["account-password"] = "Use 8–128 characters."; }
     if (registration) {
         if (String(values.get("patient_name")).trim().length < 2) { errors["account-full-name"] = "Enter your full name."; }
         if (!/^\d{10}$/.test(String(values.get("contact_number")))) { errors["account-contact"] = "Enter a 10-digit contact number."; }
@@ -996,7 +985,9 @@ function submitAccountForm(event) {
         byId(Object.keys(errors)[0]).focus();
         return;
     }
-    submitBackendForm(form, registration ? "register" : "login");
+
+    // BLOCK: Submit one-time setup, patient registration or account login.
+    submitBackendForm(form, pageData.accountMode === "setup" ? "setup" : registration ? "register" : "login");
 }
 
 
@@ -1780,6 +1771,7 @@ function editStaff(staffId = "") {
         ${field("staff-edit-name", "staff_name", "Full name", "text", staff?.name || "", { maxLength: 80 })}
         ${field("staff-edit-email", "email", "Email address", "email", staff?.email || "")}
         ${field("staff-edit-contact", "contact_number", "Contact number", "tel", staff?.contact || "")}
+        ${field("staff-edit-password", "password", staff ? "New password (leave blank to keep current)" : "Staff login password", "password", "", { required: !staff, autocomplete: "new-password", maxLength: 128 })}
         <fieldset class="field"><legend class="field-label">Assigned scan services</legend><div class="service-assignment">${appData.services.map(service => {
             const fragment = html`<label class="checkbox-label" for="staff-service-${service.id}"><input type="checkbox" id="staff-service-${service.id}" name="scan_service_ids" value="${service.id}">${service.name}</label>`;
             fragment.querySelector("input").checked = Boolean(staff?.serviceIds.includes(service.id));
@@ -1789,6 +1781,10 @@ function editStaff(staffId = "") {
         ${modalSaveActions(staff ? "Save profile" : "Add profile")}
     </form>`, (values, form) => {
         validateProfile(values);
+
+        // BLOCK: Validate staff credentials before saving scan assignments.
+        const password = String(values.get("password") || "");
+        if ((!staff && !password) || (password && (password.length < 8 || password.length > 128))) { throw new Error("Use a staff password with 8–128 characters."); }
         const serviceIds = values.getAll("scan_service_ids").map(String);
         if (!serviceIds.length || serviceIds.some(id => !appData.services.some(service => service.id === id))) { throw new Error("Assign at least one scan service."); }
         setHiddenField(form, "staff_id", staffId);
@@ -2084,7 +2080,6 @@ function handleSharedAction(event) {
 // BLOCK: initialisePage - Load backend data and render the selected HTML page.
 function initialisePage() {
     try {
-        removeOldPreviewRecords();
         pageData = readPageData();
         appData = getPageRecords(pageData.records);
         currentUser = pageData.currentUser || null;
@@ -2126,6 +2121,7 @@ function initialisePage() {
     } catch (error) {
         showFeedback(error.message, true);
         mount("page-body", emptyState("This page could not load", "Please reload the page or return to the home page.", "index.html", "Back to home"));
+        byId("page-body")?.setAttribute("aria-busy", "false");
     }
 }
 

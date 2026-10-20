@@ -11,12 +11,12 @@
 
     <title>Reschedule appointment | Scanova</title>
 
-    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
     <!-- BACKEND DATA: Flask can safely serialize records, currentUser, formActions and csrfToken here. -->
-    <script id="page-data" type="application/json">{}</script>
+    <script id="page-data" type="application/json">{{ page_data | default({}) | tojson }}</script>
 
-    <script src="../static/js/script.js" defer></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}" defer></script>
 </head>
 
 <body data-page="reschedule_appointment">
